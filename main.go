@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
 	"github.com/vova616/chipmunk"
@@ -22,6 +23,26 @@ var (
 	staticLines []*chipmunk.Shape
 	deg2rad     = math.Pi / 180
 )
+
+// key events are a way to get input from GLFW.
+func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+	if key == glfw.KeyW && action == glfw.Press {
+		fmt.Printf("W Pressed!\n")
+	}
+	if key == glfw.KeyA && action == glfw.Press {
+		fmt.Printf("A Pressed!\n")
+	}
+	if key == glfw.KeyS && action == glfw.Press {
+		fmt.Printf("S Pressed!\n")
+	}
+	if key == glfw.KeyD && action == glfw.Press {
+		fmt.Printf("D Pressed!\n")
+	}
+
+	if key == glfw.KeyEscape && action == glfw.Press {
+		w.SetShouldClose(true)
+	}
+}
 
 // drawCircle draws a circle for the specified radius, rotation angle, and the specified number of sides
 func drawCircle(radius float64, sides int) {
@@ -154,6 +175,10 @@ func main() {
 	// set up physics
 	createBodies()
 
+	//Init Controlls I think
+	// glfw.KeyCallback(window)
+	window.SetKeyCallback(keyCallback)
+
 	runtime.LockOSThread()
 	glfw.SwapInterval(1)
 
@@ -165,6 +190,10 @@ func main() {
 			ticksToNextBall = rand.Intn(100) + 1
 			addBall()
 		}
+
+		//Input Handling
+
+		//Output
 		draw()
 		step(1.0 / 60.0)
 		window.SwapBuffers()
