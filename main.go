@@ -22,6 +22,8 @@ var (
 	balls       []*chipmunk.Shape
 	staticLines []*chipmunk.Shape
 	deg2rad     = math.Pi / 180
+
+	player *chipmunk.Shape
 )
 
 // key events are a way to get input from GLFW.
@@ -37,6 +39,7 @@ func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 	}
 	if key == glfw.KeyD && action == glfw.Press {
 		fmt.Printf("D Pressed!\n")
+		// player.Velocity(vect)
 	}
 
 	if key == glfw.KeyEscape && action == glfw.Press {
@@ -86,6 +89,15 @@ func draw() {
 		drawCircle(float64(ballRadius), 60)
 		gl.PopMatrix()
 	}
+
+	//Draw Player
+	gl.PushMatrix()
+	pos := player.Body.Position()
+	rot := player.Body.Angle() * chipmunk.DegreeConst
+	gl.Translatef(float32(pos.X), float32(pos.Y), 0.0)
+	gl.Rotatef(float32(rot), 0, 0, 1)
+	drawCircle(float64(ballRadius), 60)
+	gl.PopMatrix()
 }
 
 func addBall() {
@@ -98,8 +110,10 @@ func addBall() {
 	body.SetAngle(vect.Float(rand.Float32() * 2 * math.Pi))
 
 	body.AddShape(ball)
+	// space.AddBody(body)
+	// balls = append(balls, ball)
+	player = ball
 	space.AddBody(body)
-	balls = append(balls, ball)
 }
 
 // step advances the physics engine and cleans up any balls that are off-screen
@@ -171,9 +185,12 @@ func main() {
 
 	// set up opengl context
 	onResize(window, 600, 600)
-
+	// player = createPlayer()
+	// addBall()
 	// set up physics
 	createBodies()
+
+	addBall()
 
 	//Init Controlls I think
 	// glfw.KeyCallback(window)
@@ -188,7 +205,7 @@ func main() {
 		ticksToNextBall--
 		if ticksToNextBall == 0 {
 			ticksToNextBall = rand.Intn(100) + 1
-			addBall()
+			// addBall()
 		}
 
 		//Input Handling
