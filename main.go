@@ -112,7 +112,7 @@ func addBall() {
 
 	body.AddShape(ball)
 	// space.AddBody(body)
-	// balls = append(balls, ball)
+	balls = append(balls, ball)
 	player = ball
 	space.AddBody(body)
 }
