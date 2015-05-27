@@ -28,19 +28,20 @@ var (
 
 // key events are a way to get input from GLFW.
 func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+	//if u only want the on press, do = && && action == glfw.Press
 	if key == glfw.KeyW && action == glfw.Press {
 		fmt.Printf("W Pressed!\n")
-		addBall()
 	}
-	if key == glfw.KeyA && action == glfw.Press {
+	if key == glfw.KeyA { //&& action == glfw.Press
 		fmt.Printf("A Pressed!\n")
+		player.Body.AddAngularVelocity(5)
 	}
-	if key == glfw.KeyS && action == glfw.Press {
+	if key == glfw.KeyS {
 		fmt.Printf("S Pressed!\n")
 	}
-	if key == glfw.KeyD && action == glfw.Press {
+	if key == glfw.KeyD {
 		fmt.Printf("D Pressed!\n")
-		// player.Velocity(vect)
+		player.Body.AddAngularVelocity(-5)
 	}
 
 	if key == glfw.KeyEscape && action == glfw.Press {
@@ -68,7 +69,7 @@ func draw() {
 	gl.LoadIdentity()
 
 	gl.Begin(gl.LINES)
-	gl.Color3f(.2, .2, .2)
+	gl.Color3f(.2, .5, .2)
 	for i := range staticLines {
 		x := staticLines[i].GetAsSegment().A.X
 		y := staticLines[i].GetAsSegment().A.Y
@@ -105,6 +106,7 @@ func addBall() {
 	x := rand.Intn(350-115) + 115
 	ball := chipmunk.NewCircle(vect.Vector_Zero, float32(ballRadius))
 	ball.SetElasticity(0.95)
+	// ball.SetFriction(0.9)
 
 	body := chipmunk.NewBody(vect.Float(ballMass), ball.Moment(float32(ballMass)))
 	body.SetPosition(vect.Vect{vect.Float(x), 600.0})
@@ -120,6 +122,9 @@ func addBall() {
 // step advances the physics engine and cleans up any balls that are off-screen
 func step(dt float32) {
 	space.Step(vect.Float(dt))
+
+	//Gives the velocity some torque, stops going too fast/like friction
+	player.Body.SetAngularVelocity(player.Body.AngularVelocity() * 0.92)
 
 	for i := 0; i < len(balls); i++ {
 		p := balls[i].Body.Position()
@@ -139,9 +144,13 @@ func createBodies() {
 
 	staticBody := chipmunk.NewBodyStatic()
 	staticLines = []*chipmunk.Shape{
-		chipmunk.NewSegment(vect.Vect{100.0, 200.0}, vect.Vect{407.0, 246.0}, 0),
-		chipmunk.NewSegment(vect.Vect{407.0, 246.0}, vect.Vect{407.0, 343.0}, 0),
-		chipmunk.NewSegment(vect.Vect{1.0, 100.0}, vect.Vect{500.0, 10.0}, 0),
+		//TODO Load from a CSV instead
+		chipmunk.NewSegment(vect.Vect{100.0, 200.0}, vect.Vect{407.0, 200.0}, 0),
+		chipmunk.NewSegment(vect.Vect{407.0, 200.0}, vect.Vect{407.0, 343.0}, 0),
+		chipmunk.NewSegment(vect.Vect{0.0, 100.0}, vect.Vect{500.0, 10.0}, 0),
+		// chipmunk.NewSegment(vect.Vect{0.0, 100.0}, vect.Vect{500.0, 100.0}, 0),
+		chipmunk.NewSegment(vect.Vect{5.0, 100.0}, vect.Vect{5.0, 500.0}, 0),
+		chipmunk.NewSegment(vect.Vect{1280.0, 100.0}, vect.Vect{500.0, 10.0}, 0),
 	}
 	for _, segment := range staticLines {
 		segment.SetElasticity(0.6)
