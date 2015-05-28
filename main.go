@@ -31,6 +31,9 @@ func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 	//if u only want the on press, do = && && action == glfw.Press
 	if key == glfw.KeyW && action == glfw.Press {
 		fmt.Printf("W Pressed!\n")
+
+		//Check if on floor first?
+		player.Body.AddVelocity(0, 750)
 	}
 	if key == glfw.KeyA { //&& action == glfw.Press
 		fmt.Printf("A Pressed!\n")
@@ -68,6 +71,10 @@ func draw() {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	gl.LoadIdentity()
 
+	//Transform screen.
+	gl.PushMatrix()
+	gl.Translatef((1280/2)-float32((player.Body.Position().X)), 0, 0.0)
+
 	gl.Begin(gl.LINES)
 	gl.Color3f(.2, .5, .2)
 	for i := range staticLines {
@@ -99,6 +106,8 @@ func draw() {
 	gl.Translatef(float32(pos.X), float32(pos.Y), 0.0)
 	gl.Rotatef(float32(rot), 0, 0, 1)
 	drawCircle(float64(ballRadius), 60)
+	gl.PopMatrix()
+
 	gl.PopMatrix()
 }
 
