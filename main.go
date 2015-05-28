@@ -29,6 +29,8 @@ var (
 // key events are a way to get input from GLFW.
 func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 	//if u only want the on press, do = && && action == glfw.Press
+	var speed float32
+	speed = 7
 	if key == glfw.KeyW && action == glfw.Press {
 		fmt.Printf("W Pressed!\n")
 
@@ -37,14 +39,14 @@ func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 	}
 	if key == glfw.KeyA { //&& action == glfw.Press
 		fmt.Printf("A Pressed!\n")
-		player.Body.AddAngularVelocity(5)
+		player.Body.AddAngularVelocity(speed)
 	}
 	if key == glfw.KeyS {
 		fmt.Printf("S Pressed!\n")
 	}
 	if key == glfw.KeyD {
 		fmt.Printf("D Pressed!\n")
-		player.Body.AddAngularVelocity(-5)
+		player.Body.AddAngularVelocity(-speed)
 	}
 
 	if key == glfw.KeyEscape && action == glfw.Press {
