@@ -31,6 +31,9 @@ func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 	//if u only want the on press, do = && && action == glfw.Press
 	if key == glfw.KeyW && action == glfw.Press {
 		fmt.Printf("W Pressed!\n")
+
+		//Check if on floor first?
+		player.Body.AddVelocity(0, 750)
 	}
 	if key == glfw.KeyA { //&& action == glfw.Press
 		fmt.Printf("A Pressed!\n")
