@@ -2,5 +2,6 @@
 
 A learning project for Golang + GLFW + OPENGL + Chipmunk Physics
 
-![alt tag](https://raw.github.com/bomer/testchipmunk/master/img.png)
+![alt tag](https://raw.githubusercontent.com/bomer/hellochipmunk/master/img.png)
+
 
