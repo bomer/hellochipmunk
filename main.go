@@ -25,9 +25,11 @@ var (
 	staticLines []*chipmunk.Shape
 	deg2rad     = math.Pi / 180
 
-	player          *chipmunk.Shape
-	ticksToNextBall = 2
-	canJump         = true
+	player     *chipmunk.Shape
+	jumpTick   = 2
+	eSpawnTick = 2
+
+	canJump = true
 )
 
 // key events are a way to get input from GLFW.
@@ -40,7 +42,7 @@ func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 		//Jump is controlled by a 1.5 second timer for now, should do a collision detection but that seems hard.
 		if canJump {
 			//Check if on floor first?
-			ticksToNextBall = 90
+			jumpTick = 90
 			canJump = false
 			player.Body.AddVelocity(0, 650)
 		}
@@ -132,7 +134,7 @@ func draw() {
 	}
 	gl.End()
 
-	gl.Color4f(.3, .3, 1, .8)
+	gl.Color4f(.9, .1, 1, .9)
 	// draw balls
 	for _, ball := range balls {
 		gl.PushMatrix()
@@ -143,7 +145,7 @@ func draw() {
 		drawCircle(float64(ballRadius), 60)
 		gl.PopMatrix()
 	}
-
+	gl.Color4f(.3, .3, 1, .8)
 	//Draw Player
 	gl.PushMatrix()
 	pos := player.Body.Position()
@@ -156,21 +158,28 @@ func draw() {
 	gl.PopMatrix()
 }
 
-func addBall() {
+func addBall(isPlayer bool) {
 	x := rand.Intn(350-115) + 115
 	ball := chipmunk.NewCircle(vect.Vector_Zero, float32(ballRadius))
 	ball.SetElasticity(0.95)
 	ball.SetFriction(1.5)
 
 	body := chipmunk.NewBody(vect.Float(ballMass), ball.Moment(float32(ballMass)))
-	body.SetPosition(vect.Vect{vect.Float(x), 600.0})
+	if isPlayer {
+		body.SetPosition(vect.Vect{vect.Float(x), 600.0})
+	} else {
+		x := rand.Intn(1280)
+		body.SetPosition(vect.Vect{vect.Float(x), 800.0})
+	}
 	body.SetAngle(vect.Float(rand.Float32() * 2 * math.Pi))
 
 	body.AddShape(ball)
-	// space.AddBody(body)
-	// balls = append(balls, ball)
-	player = ball
-	// player.
+	if isPlayer {
+		player = ball
+	} else {
+		balls = append(balls, ball)
+	}
+
 	space.AddBody(body)
 }
 
@@ -183,12 +192,24 @@ func step(dt float32) {
 
 	for i := 0; i < len(balls); i++ {
 		p := balls[i].Body.Position()
+		//Move Enemie TOwards player
+		if p.Y < 300 { //Only move if on bottom part of screen
+			if p.X < player.Body.Position().X {
+				// balls[i].Body.AddVelocity(10, 0)
+				balls[i].Body.AddAngularVelocity(-1)
+			} else {
+				// balls[i].Body.AddVelocity(-10, 0)
+				balls[i].Body.AddAngularVelocity(1)
+			}
+		}
+
 		if p.Y < -100 {
 			space.RemoveBody(balls[i].Body)
 			balls[i] = nil
 			balls = append(balls[:i], balls[i+1:]...)
 			i-- // consider same index again
 		}
+
 	}
 }
 
@@ -205,6 +226,11 @@ func createBodies() {
 		staticBody.AddShape(segment)
 	}
 	space.AddBody(staticBody)
+}
+
+func addEnemies() {
+	//Pass in Json read struct of enemies here + Do a loop
+	addBall(false)
 }
 
 // onResize sets up a simple 2d ortho context based on the window size
@@ -248,7 +274,9 @@ func main() {
 	// set up physics
 	createBodies()
 
-	addBall()
+	addBall(true) // True for is Player
+
+	addEnemies()
 
 	//Init Controlls I think
 	// glfw.KeyCallback(window)
@@ -259,11 +287,16 @@ func main() {
 
 	ticker := time.NewTicker(time.Second / 60)
 	for !window.ShouldClose() {
-		ticksToNextBall--
-		if ticksToNextBall == 0 {
+		jumpTick--
+		eSpawnTick--
+		if jumpTick == 0 {
 			//rand.Intn(100) + 1
 			// addBall()
 			canJump = true
+		}
+		if eSpawnTick == 0 {
+			addBall(false)
+			eSpawnTick = 200
 		}
 
 		//Input Handling
