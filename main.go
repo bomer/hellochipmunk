@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -11,6 +12,7 @@ import (
 	"math/rand"
 	"os"
 	"runtime"
+	"strconv"
 	"time"
 )
 
@@ -23,33 +25,76 @@ var (
 	staticLines []*chipmunk.Shape
 	deg2rad     = math.Pi / 180
 
-	player *chipmunk.Shape
+	player          *chipmunk.Shape
+	ticksToNextBall = 2
+	canJump         = true
 )
 
 // key events are a way to get input from GLFW.
 func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 	//if u only want the on press, do = && && action == glfw.Press
+	var speed float32
+	speed = 7
 	if key == glfw.KeyW && action == glfw.Press {
 		fmt.Printf("W Pressed!\n")
-
-		//Check if on floor first?
-		player.Body.AddVelocity(0, 750)
+		//Jump is controlled by a 1.5 second timer for now, should do a collision detection but that seems hard.
+		if canJump {
+			//Check if on floor first?
+			ticksToNextBall = 90
+			canJump = false
+			player.Body.AddVelocity(0, 650)
+		}
 	}
 	if key == glfw.KeyA { //&& action == glfw.Press
 		fmt.Printf("A Pressed!\n")
-		player.Body.AddAngularVelocity(5)
+		player.Body.AddAngularVelocity(speed)
+		player.Body.AddVelocity(-2, 0)
 	}
 	if key == glfw.KeyS {
 		fmt.Printf("S Pressed!\n")
 	}
 	if key == glfw.KeyD {
 		fmt.Printf("D Pressed!\n")
-		player.Body.AddAngularVelocity(-5)
+		player.Body.AddAngularVelocity(-speed)
+		player.Body.AddVelocity(2, 0)
 	}
 
 	if key == glfw.KeyEscape && action == glfw.Press {
 		w.SetShouldClose(true)
 	}
+}
+
+func readfile(filename string) []*chipmunk.Shape {
+	csvfile, err := os.Open("level.csv")
+
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	defer csvfile.Close()
+
+	reader := csv.NewReader(csvfile)
+	reader.FieldsPerRecord = -1 // see the Reader struct information below
+
+	rawCSVdata, err := reader.ReadAll()
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	// sanity check, display to standard output
+	var ret []*chipmunk.Shape
+	for _, each := range rawCSVdata {
+		f1, _ := strconv.ParseFloat(each[0], 64)
+		f2, _ := strconv.ParseFloat(each[1], 64)
+		f3, _ := strconv.ParseFloat(each[2], 64)
+		f4, _ := strconv.ParseFloat(each[3], 64)
+		fmt.Printf("x1 : %f y1  : %f to x2: %f y2: %f \n", f1, f2, f3, f4)
+		ret = append(ret, chipmunk.NewSegment(vect.Vect{vect.Float(f1), vect.Float(f2)}, vect.Vect{vect.Float(f3), vect.Float(f4)}, 0))
+	}
+	return ret
 }
 
 // drawCircle draws a circle for the specified radius, rotation angle, and the specified number of sides
@@ -115,7 +160,7 @@ func addBall() {
 	x := rand.Intn(350-115) + 115
 	ball := chipmunk.NewCircle(vect.Vector_Zero, float32(ballRadius))
 	ball.SetElasticity(0.95)
-	// ball.SetFriction(0.9)
+	ball.SetFriction(1.5)
 
 	body := chipmunk.NewBody(vect.Float(ballMass), ball.Moment(float32(ballMass)))
 	body.SetPosition(vect.Vect{vect.Float(x), 600.0})
@@ -125,6 +170,7 @@ func addBall() {
 	// space.AddBody(body)
 	balls = append(balls, ball)
 	player = ball
+	// player.
 	space.AddBody(body)
 }
 
@@ -148,19 +194,12 @@ func step(dt float32) {
 
 // createBodies sets up the chipmunk space and static bodies
 func createBodies() {
+	// readfile("level.csv")
 	space = chipmunk.NewSpace()
 	space.Gravity = vect.Vect{0, -900}
 
 	staticBody := chipmunk.NewBodyStatic()
-	staticLines = []*chipmunk.Shape{
-		//TODO Load from a CSV instead
-		chipmunk.NewSegment(vect.Vect{100.0, 200.0}, vect.Vect{407.0, 200.0}, 0),
-		chipmunk.NewSegment(vect.Vect{407.0, 200.0}, vect.Vect{407.0, 343.0}, 0),
-		chipmunk.NewSegment(vect.Vect{0.0, 100.0}, vect.Vect{500.0, 10.0}, 0),
-		// chipmunk.NewSegment(vect.Vect{0.0, 100.0}, vect.Vect{500.0, 100.0}, 0),
-		chipmunk.NewSegment(vect.Vect{5.0, 100.0}, vect.Vect{5.0, 500.0}, 0),
-		chipmunk.NewSegment(vect.Vect{1280.0, 100.0}, vect.Vect{500.0, 10.0}, 0),
-	}
+	staticLines = readfile("level.csv")
 	for _, segment := range staticLines {
 		segment.SetElasticity(0.6)
 		staticBody.AddShape(segment)
@@ -218,13 +257,13 @@ func main() {
 	runtime.LockOSThread()
 	glfw.SwapInterval(1)
 
-	ticksToNextBall := 2
 	ticker := time.NewTicker(time.Second / 60)
 	for !window.ShouldClose() {
 		ticksToNextBall--
 		if ticksToNextBall == 0 {
-			ticksToNextBall = rand.Intn(100) + 1
+			//rand.Intn(100) + 1
 			// addBall()
+			canJump = true
 		}
 
 		//Input Handling
