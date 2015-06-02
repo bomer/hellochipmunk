@@ -1,7 +1,8 @@
 package main
 
 import (
-	"encoding/csv"
+	// "encoding/csv"
+	"encoding/json"
 	"fmt"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -12,7 +13,8 @@ import (
 	"math/rand"
 	"os"
 	"runtime"
-	"strconv"
+	// "strconv"
+	"io/ioutil"
 	"time"
 )
 
@@ -28,7 +30,34 @@ var (
 	player          *chipmunk.Shape
 	ticksToNextBall = 2
 	canJump         = true
+
+	level *Level
 )
+
+type LevelPoint struct {
+	Ax float32
+	Ay float32
+	Bx float32
+	By float32
+}
+
+func (self LevelPoint) getChipmunkSegment() *chipmunk.Shape {
+	return chipmunk.NewSegment(vect.Vect{vect.Float(self.Ax), vect.Float(self.Ay)}, vect.Vect{vect.Float(self.Bx), vect.Float(self.By)}, 0)
+}
+
+type Level struct {
+	Points []LevelPoint
+}
+
+func (self Level) getChipmunkSegments() []*chipmunk.Shape {
+	segments := make([]*chipmunk.Shape, len(self.Points))
+
+	for i, lp := range self.Points {
+		segments[i] = lp.getChipmunkSegment()
+	}
+
+	return segments
+}
 
 // key events are a way to get input from GLFW.
 func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
@@ -64,38 +93,57 @@ func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 	}
 }
 
-func readfile(filename string) []*chipmunk.Shape {
-	csvfile, err := os.Open("level.csv")
+func readfile(filename string) *Level {
+	var level Level
 
+	file, err := ioutil.ReadFile(filename)
+	fmt.Println(string(file), err)
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		panic(err)
 	}
-
-	defer csvfile.Close()
-
-	reader := csv.NewReader(csvfile)
-	reader.FieldsPerRecord = -1 // see the Reader struct information below
-
-	rawCSVdata, err := reader.ReadAll()
-
+	err = json.Unmarshal(file, &level)
+	// fmt.Println(err)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		panic(err)
 	}
 
-	// sanity check, display to standard output
-	var ret []*chipmunk.Shape
-	for _, each := range rawCSVdata {
-		f1, _ := strconv.ParseFloat(each[0], 64)
-		f2, _ := strconv.ParseFloat(each[1], 64)
-		f3, _ := strconv.ParseFloat(each[2], 64)
-		f4, _ := strconv.ParseFloat(each[3], 64)
-		fmt.Printf("x1 : %f y1  : %f to x2: %f y2: %f \n", f1, f2, f3, f4)
-		ret = append(ret, chipmunk.NewSegment(vect.Vect{vect.Float(f1), vect.Float(f2)}, vect.Vect{vect.Float(f3), vect.Float(f4)}, 0))
-	}
-	return ret
+	fmt.Println(level)
+
+	return &level
 }
+
+// func readfile(filename string) []*chipmunk.Shape {
+// 	csvfile, err := os.Open("level.csv")
+
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		return nil
+// 	}
+
+// 	defer csvfile.Close()
+
+// 	reader := csv.NewReader(csvfile)
+// 	reader.FieldsPerRecord = -1 // see the Reader struct information below
+
+// 	rawCSVdata, err := reader.ReadAll()
+
+// 	if err != nil {
+// 		fmt.Println(err)
+// 		os.Exit(1)
+// 	}
+
+// 	// sanity check, display to standard output
+// 	var ret []*chipmunk.Shape
+// 	for _, each := range rawCSVdata {
+// 		f1, _ := strconv.ParseFloat(each[0], 64)
+// 		f2, _ := strconv.ParseFloat(each[1], 64)
+// 		f3, _ := strconv.ParseFloat(each[2], 64)
+// 		f4, _ := strconv.ParseFloat(each[3], 64)
+// 		fmt.Printf("x1 : %f y1  : %f to x2: %f y2: %f \n", f1, f2, f3, f4)
+// 		ret = append(ret, chipmunk.NewSegment(vect.Vect{vect.Float(f1), vect.Float(f2)}, vect.Vect{vect.Float(f3), vect.Float(f4)}, 0))
+// 	}
+// 	return ret
+// }
 
 // drawCircle draws a circle for the specified radius, rotation angle, and the specified number of sides
 func drawCircle(radius float64, sides int) {
@@ -199,7 +247,8 @@ func createBodies() {
 	space.Gravity = vect.Vect{0, -900}
 
 	staticBody := chipmunk.NewBodyStatic()
-	staticLines = readfile("level.csv")
+	level = readfile("level.json")
+	staticLines = level.getChipmunkSegments()
 	for _, segment := range staticLines {
 		segment.SetElasticity(0.6)
 		staticBody.AddShape(segment)
