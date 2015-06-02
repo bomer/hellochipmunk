@@ -100,7 +100,6 @@ func readfile(filename string) *Level {
 	var level Level
 
 	file, err := ioutil.ReadFile(filename)
-	fmt.Println(string(file), err)
 	if err != nil {
 		panic(err)
 	}
@@ -110,43 +109,8 @@ func readfile(filename string) *Level {
 		panic(err)
 	}
 
-	fmt.Println(level)
-
 	return &level
 }
-
-// func readfile(filename string) []*chipmunk.Shape {
-// 	csvfile, err := os.Open("level.csv")
-
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		return nil
-// 	}
-
-// 	defer csvfile.Close()
-
-// 	reader := csv.NewReader(csvfile)
-// 	reader.FieldsPerRecord = -1 // see the Reader struct information below
-
-// 	rawCSVdata, err := reader.ReadAll()
-
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		os.Exit(1)
-// 	}
-
-// 	// sanity check, display to standard output
-// 	var ret []*chipmunk.Shape
-// 	for _, each := range rawCSVdata {
-// 		f1, _ := strconv.ParseFloat(each[0], 64)
-// 		f2, _ := strconv.ParseFloat(each[1], 64)
-// 		f3, _ := strconv.ParseFloat(each[2], 64)
-// 		f4, _ := strconv.ParseFloat(each[3], 64)
-// 		fmt.Printf("x1 : %f y1  : %f to x2: %f y2: %f \n", f1, f2, f3, f4)
-// 		ret = append(ret, chipmunk.NewSegment(vect.Vect{vect.Float(f1), vect.Float(f2)}, vect.Vect{vect.Float(f3), vect.Float(f4)}, 0))
-// 	}
-// 	return ret
-// }
 
 // drawCircle draws a circle for the specified radius, rotation angle, and the specified number of sides
 func drawCircle(radius float64, sides int) {
