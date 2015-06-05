@@ -1,6 +1,7 @@
 package engine
 
 import (
+	// "fmt"
 	"github.com/vova616/chipmunk"
 	"github.com/vova616/chipmunk/vect"
 	"math"
@@ -8,6 +9,12 @@ import (
 )
 
 type Player struct {
+	jumpTick     int32
+	jumpTickStop int32
+	jumping      bool
+
+	speed float32
+
 	Mass   int32
 	Radius int32
 
@@ -29,9 +36,42 @@ func NewPlayer(ballRadius, ballMass int32, game *Game) *Player {
 
 	game.Space.AddBody(body)
 
-	return &Player{Body: ball.Body, ball: ball, Radius: ballRadius, Mass: ballMass}
+	return &Player{Body: ball.Body, ball: ball,
+		Radius: ballRadius, Mass: ballMass,
+		jumpTickStop: 2, jumpTick: 0, jumping: false, speed: 5}
 }
 
 func (self *Player) Update() {
+	if self.jumping {
+
+		if self.jumpTick == self.jumpTickStop {
+			self.jumping = false
+			self.jumpTick = 0
+		}
+
+		self.jumpTick += 1
+	}
+
+}
+
+func (self *Player) MoveRight() {
+	self.Body.AddAngularVelocity(-self.speed)
+	self.Body.AddVelocity(2, 0)
+}
+
+func (self *Player) MoveLeft() {
+	self.Body.AddAngularVelocity(self.speed)
+	self.Body.AddVelocity(-2, 0)
+
+}
+
+func (self *Player) Jump() {
+	if !self.jumping {
+		self.jumpTickStop = 90
+		self.jumpTick = 0
+		self.Body.AddVelocity(0, 650)
+
+		self.jumping = true
+	}
 
 }

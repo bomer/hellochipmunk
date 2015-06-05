@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/bomer/hellochipmunk/engine"
+	"./engine"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
@@ -18,44 +18,29 @@ import (
 
 var (
 	game *engine.Game
-
-	jumpTick   = 2
-	eSpawnTick = 2
-
-	canJump = true
 )
 
 // key events are a way to get input from GLFW.
 func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 	//if u only want the on press, do = && && action == glfw.Press
-	var speed float32
-	speed = 7
-
 	player := game.Player
 
 	if key == glfw.KeyW && action == glfw.Press {
 		fmt.Printf("W Pressed!\n")
-		//Jump is controlled by a 1.5 second timer for now, should do a collision detection but that seems hard.
-		if canJump {
-			//Check if on floor first?
-			jumpTick = 90
-			canJump = false
-			player.Body.AddVelocity(0, 650)
-		}
+		player.Jump()
 
 	}
 	if key == glfw.KeyA { //&& action == glfw.Press
 		fmt.Printf("A Pressed!\n")
-		player.Body.AddAngularVelocity(speed)
-		player.Body.AddVelocity(-2, 0)
+		player.MoveLeft()
 	}
 	if key == glfw.KeyS {
 		fmt.Printf("S Pressed!\n")
 	}
 	if key == glfw.KeyD {
 		fmt.Printf("D Pressed!\n")
-		player.Body.AddAngularVelocity(-speed)
-		player.Body.AddVelocity(2, 0)
+		player.MoveRight()
+
 	}
 
 	if key == glfw.KeyEscape && action == glfw.Press {
@@ -178,18 +163,6 @@ func main() {
 
 	ticker := time.NewTicker(time.Second / 60)
 	for !window.ShouldClose() {
-
-		jumpTick--
-		eSpawnTick--
-		if jumpTick == 0 {
-			//rand.Intn(100) + 1
-			// addBall()
-			canJump = true
-		}
-		if eSpawnTick == 0 {
-			game.SpawnEnemy()
-			eSpawnTick = 200
-		}
 
 		game.Update(1.0 / 60.0)
 
