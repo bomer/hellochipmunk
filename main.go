@@ -18,6 +18,11 @@ import (
 
 var (
 	game *engine.Game
+
+	jumpTick   = 2
+	eSpawnTick = 2
+
+	canJump = true
 )
 
 // key events are a way to get input from GLFW.
@@ -29,6 +34,14 @@ func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 	player := game.Player
 
 	if key == glfw.KeyW && action == glfw.Press {
+		fmt.Printf("W Pressed!\n")
+		//Jump is controlled by a 1.5 second timer for now, should do a collision detection but that seems hard.
+		if canJump {
+			//Check if on floor first?
+			jumpTick = 90
+			canJump = false
+			player.Body.AddVelocity(0, 650)
+		}
 
 	}
 	if key == glfw.KeyA { //&& action == glfw.Press
@@ -165,6 +178,18 @@ func main() {
 
 	ticker := time.NewTicker(time.Second / 60)
 	for !window.ShouldClose() {
+
+		jumpTick--
+		eSpawnTick--
+		if jumpTick == 0 {
+			//rand.Intn(100) + 1
+			// addBall()
+			canJump = true
+		}
+		if eSpawnTick == 0 {
+			game.SpawnEnemy()
+			eSpawnTick = 200
+		}
 
 		game.Update(1.0 / 60.0)
 
