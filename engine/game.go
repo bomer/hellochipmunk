@@ -15,7 +15,7 @@ type Game struct {
 	Space *chipmunk.Space
 
 	Level   *Level
-	Enemies []Enemy
+	Enemies []*Enemy
 	Player  *Player
 }
 
@@ -29,9 +29,14 @@ func (self *Game) Init() {
 	self.Space.Gravity = vect.Vect{0, -900}
 
 	self.Player = NewPlayer(self.BallRadius, self.BallMass, self)
+	self.Enemies = []*Enemy{}
 
 	self.initialized = true
 
+}
+
+func (self *Game) SpawnEnemy() {
+	self.Enemies = append(self.Enemies, NewEnemy(self.BallRadius, self.BallMass, self))
 }
 
 func (self *Game) Update(dt float32) {
