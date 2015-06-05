@@ -1,12 +1,16 @@
 package engine
 
 import (
+	// "fmt"
 	"github.com/vova616/chipmunk"
 	"github.com/vova616/chipmunk/vect"
 )
 
 type Game struct {
 	initialized bool
+
+	spawnEnemiesTick int32
+	spawnEnemiesAt   int32
 
 	BallRadius  int32
 	BallMass    int32
@@ -20,8 +24,10 @@ type Game struct {
 }
 
 func NewGame() *Game {
-
-	return &Game{initialized: false, BallRadius: 25, BallMass: 1, DegreeConst: chipmunk.DegreeConst}
+	return &Game{initialized: false,
+		BallRadius: 25, BallMass: 1,
+		DegreeConst:    chipmunk.DegreeConst,
+		spawnEnemiesAt: 200, spawnEnemiesTick: 0}
 }
 
 func (self *Game) Init() {
@@ -52,6 +58,13 @@ func (self *Game) Update(dt float32) {
 			self.Enemies = append(self.Enemies[:i], self.Enemies[i+1:]...)
 		}
 	}
+
+	if self.spawnEnemiesTick == self.spawnEnemiesAt {
+		self.SpawnEnemy()
+		self.spawnEnemiesTick = 0
+	}
+
+	self.spawnEnemiesTick += 1
 }
 
 func (self *Game) ReadLevelFromFile(filename string) {
