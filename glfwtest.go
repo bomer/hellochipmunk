@@ -15,7 +15,7 @@ import (
 const (
 	BALL_RADIUS = 25
 	GRAVITY     = -3
-	MOVESPEED   = 5
+	MOVESPEED   = 0.37
 )
 
 var (
@@ -36,6 +36,9 @@ type Ball struct {
 
 	velocity_x float32
 	velocity_y float32
+
+	moving_left  bool
+	moving_right bool
 }
 
 func NewBall(x, y float32) *Ball {
@@ -48,6 +51,15 @@ func NewBall(x, y float32) *Ball {
 }
 
 func (b *Ball) update() {
+
+	//Work out X veloicty based on button press states
+	if b.moving_left {
+		b.velocity_x -= MOVESPEED
+	}
+	if b.moving_right {
+		b.velocity_x += MOVESPEED
+	}
+
 	//Apply X Velocity
 	b.x += b.velocity_x
 
@@ -72,12 +84,12 @@ func (b *Ball) update() {
 
 func (b *Ball) moveRight() {
 	b.velocity_x = MOVESPEED
-	b.velocity_y = 0
+	// b.velocity_y = 0
 }
 
 func (b *Ball) moveLeft() {
 	b.velocity_x = -MOVESPEED
-	b.velocity_y = 0
+	// b.velocity_y = 0
 }
 
 func (b *Ball) moveUp() {
@@ -101,7 +113,13 @@ func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 	}
 	if key == glfw.KeyA { //&& action == glfw.Press
 		fmt.Printf("A Pressed!\n")
-		player.moveLeft()
+		if action == glfw.Release {
+			player.moving_left = false
+		}
+		if action == glfw.Press {
+			player.moving_left = true
+		}
+		// player.moveLeft()
 	}
 	if key == glfw.KeyS {
 		fmt.Printf("S Pressed!\n")
@@ -109,7 +127,13 @@ func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 	}
 	if key == glfw.KeyD {
 		fmt.Printf("D Pressed!\n")
-		player.moveRight()
+		if action == glfw.Release {
+			player.moving_right = false
+		}
+		if action == glfw.Press {
+			player.moving_right = true
+		}
+		// player.moveRight()
 	}
 
 	if key == glfw.KeyEscape && action == glfw.Press {
@@ -120,11 +144,12 @@ func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 // drawCircle draws a circle for the specified radius, rotation angle, and the specified number of sides
 func drawCircle(radius float64, sides int) {
 	gl.Begin(gl.TRIANGLE_FAN)
-	for a := 0.0; a < 2*math.Pi; a += (2 * math.Pi / float64(sides)) {
+	for a := 0.0; a < 2*math.Pi; a += (2 * math.Pi / float64(70)) {
 		gl.Vertex2d(math.Sin(a)*radius, math.Cos(a)*radius)
 	}
 	gl.Vertex3f(0, 0, 0)
 	gl.End()
+
 }
 
 func draw() {
@@ -134,6 +159,10 @@ func draw() {
 	gl.Enable(gl.LINE_SMOOTH)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	gl.LoadIdentity()
+
+	//Transform screen to keep player in middle. Added intentation to make obvious the push matrix is like a block
+	gl.PushMatrix()
+	// gl.Translatef((1280/2)-float32(player.x), 0, 0.0)
 
 	// gl.Begin(gl.LINES)
 	// gl.Color3f(.2, .5, .2)
@@ -151,14 +180,16 @@ func draw() {
 
 	//Draw Player
 	gl.PushMatrix()
-
 	rot := player.rot
 	pos_x := player.x
 	pos_y := player.y
 
 	gl.Translatef(pos_x, pos_y, 0.0)
 	gl.Rotatef(float32(rot), 0, 0, 1)
-	drawCircle(float64(BALL_RADIUS), 60)
+	drawCircle(float64(BALL_RADIUS), 20)
+	gl.PopMatrix()
+
+	//Second Pop
 	gl.PopMatrix()
 }
 
