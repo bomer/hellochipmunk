@@ -1,8 +1,0 @@
-100,200,407,200,Because we only use positions 0-3 of CSV, everythng after here is a comment.
-407,200,407,343
-0,100,500,10
-5,100,5,500
-500,10,1280,100,Peak of first ramp
-1800,100,2500,10,Landing first ramp
-2500,10,2500,100,
-2500,100,2700,100,step Up
