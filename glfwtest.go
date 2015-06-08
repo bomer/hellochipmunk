@@ -14,7 +14,8 @@ import (
 
 const (
 	BALL_RADIUS = 25
-	GRAVITY     = -5
+	GRAVITY     = -3
+	MOVESPEED   = 5
 )
 
 var (
@@ -47,36 +48,40 @@ func NewBall(x, y float32) *Ball {
 }
 
 func (b *Ball) update() {
-	b.velocity_y += b.velocity_y * 0.01
-
+	//Apply X Velocity
 	b.x += b.velocity_x
 
-	if b.y >= b.max_y {
-		b.velocity_y = -3
-	}
+	//Then apply friction which naturally slows down object
+	b.velocity_x *= 0.98
 
-	b.y += b.velocity_y + GRAVITY
+	//Apply y Velocity (Jump or gravity)
+	b.y += b.velocity_y
 
+	//Then apply gravity to the velocity, this is done after to ensure initial jump surge is not affected untill next frame
+	b.velocity_y += GRAVITY
+
+	//Simulated ground, should be hit detection really
 	if b.y < 100 {
 		b.y = 100
 	}
 
-	b.rot += 5 * (-b.velocity_x)
+	//Updated constant to be 3.14 (pi) so it rotates exactly as the ball does, could be changed slightly
+	b.rot += 3.14 * (-b.velocity_x)
 
 }
 
 func (b *Ball) moveRight() {
-	b.velocity_x = 3
+	b.velocity_x = MOVESPEED
 	b.velocity_y = 0
 }
 
 func (b *Ball) moveLeft() {
-	b.velocity_x = -3
+	b.velocity_x = -MOVESPEED
 	b.velocity_y = 0
 }
 
 func (b *Ball) moveUp() {
-	b.velocity_y = 20
+	b.velocity_y = 50
 	b.max_y = b.y + 300
 	// b.velocity_x = 0
 }
@@ -90,7 +95,7 @@ func (b *Ball) moveDown() {
 // key events are a way to get input from GLFW.
 func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 	//if u only want the on press, do = && && action == glfw.Press
-	if key == glfw.KeyW { // && action == glfw.Press {
+	if key == glfw.KeyW && action == glfw.Press {
 		fmt.Printf("W Pressed!\n")
 		player.moveUp()
 	}
@@ -114,7 +119,7 @@ func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action,
 
 // drawCircle draws a circle for the specified radius, rotation angle, and the specified number of sides
 func drawCircle(radius float64, sides int) {
-	gl.Begin(gl.LINE_LOOP)
+	gl.Begin(gl.TRIANGLE_FAN)
 	for a := 0.0; a < 2*math.Pi; a += (2 * math.Pi / float64(sides)) {
 		gl.Vertex2d(math.Sin(a)*radius, math.Cos(a)*radius)
 	}
@@ -192,7 +197,7 @@ func main() {
 	}
 
 	// set up opengl context
-	onResize(window, 600, 600)
+	onResize(window, 1280, 720)
 
 	// glfw.KeyCallback(window)
 	window.SetKeyCallback(keyCallback)
