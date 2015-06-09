@@ -1,115 +1,51 @@
 package main
 
 import (
-	// "encoding/csv"
-	"encoding/json"
 	"fmt"
+
+	"./engine"
+
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.1/glfw"
-	"github.com/vova616/chipmunk"
-	"github.com/vova616/chipmunk/vect"
+
 	"log"
 	"math"
-	"math/rand"
 	"os"
 	"runtime"
-	// "strconv"
-	"io/ioutil"
+
 	"time"
 )
 
 var (
-	ballRadius = 25
-	ballMass   = 1
-
-	space       *chipmunk.Space
-	balls       []*chipmunk.Shape
-	staticLines []*chipmunk.Shape
-	deg2rad     = math.Pi / 180
-
-	ticksToNextBall = 2
-
-	player     *chipmunk.Shape
-	jumpTick   = 2
-	eSpawnTick = 2
-
-	canJump = true
-	level   *Level
+	game *engine.Game
 )
-
-type LevelPoint struct {
-	Ax float32
-	Ay float32
-	Bx float32
-	By float32
-}
-
-func (self LevelPoint) getChipmunkSegment() *chipmunk.Shape {
-	return chipmunk.NewSegment(vect.Vect{vect.Float(self.Ax), vect.Float(self.Ay)}, vect.Vect{vect.Float(self.Bx), vect.Float(self.By)}, 0)
-}
-
-type Level struct {
-	Points []LevelPoint
-}
-
-func (self Level) getChipmunkSegments() []*chipmunk.Shape {
-	segments := make([]*chipmunk.Shape, len(self.Points))
-
-	for i, lp := range self.Points {
-		segments[i] = lp.getChipmunkSegment()
-	}
-
-	return segments
-}
 
 // key events are a way to get input from GLFW.
 func keyCallback(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 	//if u only want the on press, do = && && action == glfw.Press
-	var speed float32
-	speed = 7
+	player := game.Player
+
 	if key == glfw.KeyW && action == glfw.Press {
 		fmt.Printf("W Pressed!\n")
-		//Jump is controlled by a 1.5 second timer for now, should do a collision detection but that seems hard.
-		if canJump {
-			//Check if on floor first?
-			jumpTick = 90
-			canJump = false
-			player.Body.AddVelocity(0, 650)
-		}
+		player.Jump()
+
 	}
 	if key == glfw.KeyA { //&& action == glfw.Press
 		fmt.Printf("A Pressed!\n")
-		player.Body.AddAngularVelocity(speed)
-		player.Body.AddVelocity(-2, 0)
+		player.MoveLeft()
 	}
 	if key == glfw.KeyS {
 		fmt.Printf("S Pressed!\n")
 	}
 	if key == glfw.KeyD {
 		fmt.Printf("D Pressed!\n")
-		player.Body.AddAngularVelocity(-speed)
-		player.Body.AddVelocity(2, 0)
+		player.MoveRight()
+
 	}
 
 	if key == glfw.KeyEscape && action == glfw.Press {
 		w.SetShouldClose(true)
 	}
-}
-
-func readfile(filename string) *Level {
-	var level Level
-
-	file, err := ioutil.ReadFile(filename)
-	if err != nil {
-		panic(err)
-	}
-	err = json.Unmarshal(file, &level)
-	// fmt.Println(err)
-	if err != nil {
-		panic(err)
-	}
-
-	return &level
 }
 
 // drawCircle draws a circle for the specified radius, rotation angle, and the specified number of sides
@@ -131,121 +67,46 @@ func draw() {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	gl.LoadIdentity()
 
+	player := game.Player
+
 	//Transform screen.
 	gl.PushMatrix()
 	gl.Translatef((1280/2)-float32((player.Body.Position().X)), 0, 0.0)
 
 	gl.Begin(gl.LINES)
 	gl.Color3f(.2, .5, .2)
-	for i := range staticLines {
-		x := staticLines[i].GetAsSegment().A.X
-		y := staticLines[i].GetAsSegment().A.Y
+	for _, segment := range game.Level.GetChipmunkSegments() {
+		x := segment.GetAsSegment().A.X
+		y := segment.GetAsSegment().A.Y
 		gl.Vertex3f(float32(x), float32(y), 0)
-		x = staticLines[i].GetAsSegment().B.X
-		y = staticLines[i].GetAsSegment().B.Y
+		x = segment.GetAsSegment().B.X
+		y = segment.GetAsSegment().B.Y
 		gl.Vertex3f(float32(x), float32(y), 0)
 	}
 	gl.End()
 
 	gl.Color4f(.9, .1, 1, .9)
 	// draw balls
-	for _, ball := range balls {
+	for _, enemy := range game.Enemies {
 		gl.PushMatrix()
-		pos := ball.Body.Position()
-		rot := ball.Body.Angle() * chipmunk.DegreeConst
+		pos := enemy.Body.Position()
+		rot := enemy.Body.Angle() * game.DegreeConst
 		gl.Translatef(float32(pos.X), float32(pos.Y), 0.0)
 		gl.Rotatef(float32(rot), 0, 0, 1)
-		drawCircle(float64(ballRadius), 60)
+		drawCircle(float64(enemy.Radius), 60)
 		gl.PopMatrix()
 	}
 	gl.Color4f(.3, .3, 1, .8)
 	//Draw Player
 	gl.PushMatrix()
 	pos := player.Body.Position()
-	rot := player.Body.Angle() * chipmunk.DegreeConst
+	rot := player.Body.Angle() * game.DegreeConst
 	gl.Translatef(float32(pos.X), float32(pos.Y), 0.0)
 	gl.Rotatef(float32(rot), 0, 0, 1)
-	drawCircle(float64(ballRadius), 60)
+	drawCircle(float64(player.Radius), 60)
 	gl.PopMatrix()
 
 	gl.PopMatrix()
-}
-
-func addBall(isPlayer bool) {
-	x := rand.Intn(350-115) + 115
-	ball := chipmunk.NewCircle(vect.Vector_Zero, float32(ballRadius))
-	ball.SetElasticity(0.95)
-	ball.SetFriction(1.5)
-
-	body := chipmunk.NewBody(vect.Float(ballMass), ball.Moment(float32(ballMass)))
-	if isPlayer {
-		body.SetPosition(vect.Vect{vect.Float(x), 600.0})
-	} else {
-		x := rand.Intn(1280)
-		body.SetPosition(vect.Vect{vect.Float(x), 800.0})
-	}
-	body.SetAngle(vect.Float(rand.Float32() * 2 * math.Pi))
-
-	body.AddShape(ball)
-
-	if isPlayer {
-		player = ball
-	} else {
-		balls = append(balls, ball)
-	}
-
-	space.AddBody(body)
-}
-
-// step advances the physics engine and cleans up any balls that are off-screen
-func step(dt float32) {
-	space.Step(vect.Float(dt))
-
-	//Gives the velocity some torque, stops going too fast/like friction
-	player.Body.SetAngularVelocity(player.Body.AngularVelocity() * 0.92)
-
-	for i := 0; i < len(balls); i++ {
-		p := balls[i].Body.Position()
-		//Move Enemie TOwards player
-		if p.Y < 300 { //Only move if on bottom part of screen
-			if p.X < player.Body.Position().X {
-				// balls[i].Body.AddVelocity(10, 0)
-				balls[i].Body.AddAngularVelocity(-1)
-			} else {
-				// balls[i].Body.AddVelocity(-10, 0)
-				balls[i].Body.AddAngularVelocity(1)
-			}
-		}
-
-		if p.Y < -100 {
-			space.RemoveBody(balls[i].Body)
-			balls[i] = nil
-			balls = append(balls[:i], balls[i+1:]...)
-			i-- // consider same index again
-		}
-
-	}
-}
-
-// createBodies sets up the chipmunk space and static bodies
-func createBodies() {
-	// readfile("level.csv")
-	space = chipmunk.NewSpace()
-	space.Gravity = vect.Vect{0, -900}
-
-	staticBody := chipmunk.NewBodyStatic()
-	level = readfile("level.json")
-	staticLines = level.getChipmunkSegments()
-	for _, segment := range staticLines {
-		segment.SetElasticity(0.6)
-		staticBody.AddShape(segment)
-	}
-	space.AddBody(staticBody)
-}
-
-func addEnemies() {
-	//Pass in Json read struct of enemies here + Do a loop
-	addBall(false)
 }
 
 // onResize sets up a simple 2d ortho context based on the window size
@@ -287,11 +148,11 @@ func main() {
 	// player = createPlayer()
 	// addBall()
 	// set up physics
-	createBodies()
 
-	addBall(true) // True for is Player
+	game = engine.NewGame()
 
-	addEnemies()
+	game.Init()
+	game.ReadLevelFromFile("level.json")
 
 	//Init Controlls I think
 	// glfw.KeyCallback(window)
@@ -302,23 +163,10 @@ func main() {
 
 	ticker := time.NewTicker(time.Second / 60)
 	for !window.ShouldClose() {
-		jumpTick--
-		eSpawnTick--
-		if jumpTick == 0 {
-			//rand.Intn(100) + 1
-			// addBall()
-			canJump = true
-		}
-		if eSpawnTick == 0 {
-			addBall(false)
-			eSpawnTick = 200
-		}
 
-		//Input Handling
+		game.Update(1.0 / 60.0)
 
-		//Output
 		draw()
-		step(1.0 / 60.0)
 		window.SwapBuffers()
 		glfw.PollEvents()
 
