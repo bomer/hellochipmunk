@@ -39,15 +39,32 @@ type Ball struct {
 
 	moving_left  bool
 	moving_right bool
+
+	hook Grapple
+}
+
+type Grapple struct {
+	x_start float32
+	y_start float32
+	x_end   float32
+	y_end   float32
+
+	elasticity float32
+	attached   bool
+	firing     bool
 }
 
 func NewBall(x, y float32) *Ball {
 	var velocity_x float32 = 0
 	var velocity_y float32 = 0
 
+	var h Grapple = Grapple{}
+	h.x_end = 500
+	h.y_end = 500
+
 	return &Ball{x: x, y: y, rot: 0,
 		color_r: 0.1, color_g: 0.2, color_b: 0.5, color_a: 0.8,
-		velocity_x: velocity_x, velocity_y: velocity_y}
+		velocity_x: velocity_x, velocity_y: velocity_y, hook: h}
 }
 
 func (b *Ball) update() {
@@ -188,6 +205,20 @@ func draw() {
 	gl.Rotatef(float32(rot), 0, 0, 1)
 	drawCircle(float64(BALL_RADIUS), 20)
 	gl.PopMatrix()
+
+	//Draw the grapple
+	gl.PushMatrix()
+	gl.Translatef(player.hook.x_end, player.hook.y_end, 0.0)
+	drawCircle(float64(5), 5)
+	gl.PopMatrix()
+
+	//Grapple Line
+	gl.LineWidth(2.5)
+	gl.Color3f(1.0, 0.0, 0.0)
+	gl.Begin(gl.LINES)
+	gl.Vertex3f(player.x, player.y, 0.0)
+	gl.Vertex3f(player.hook.x_end, player.hook.y_end, 0)
+	gl.End()
 
 	//Second Pop
 	gl.PopMatrix()
